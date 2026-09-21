@@ -11,7 +11,7 @@ use App\Models\Pesanan;
 use App\Models\DetailPesanan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-
+use App\Models\Setting;
 class AdminController extends Controller
 {
     public function dashboard()
@@ -115,5 +115,24 @@ class AdminController extends Controller
             return back()->with('success', 'Data pengguna berhasil dihapus!');
         }
         return back()->with('error', 'Pengguna tidak ditemukan.');
+    }
+    // Halaman Pengaturan Ongkir
+    public function ongkirIndex()
+    {
+        $ongkir = Setting::getOngkir();
+        return view('admin.ongkir', compact('ongkir'));
+    }
+
+    // Update Pengaturan Ongkir
+    public function ongkirUpdate(Request $request)
+    {
+        $request->validate(['ongkir' => 'required|numeric|min:0']);
+        
+        Setting::updateOrCreate(
+            ['key' => 'ongkir_flat'],
+            ['value' => $request->ongkir]
+        );
+
+        return back()->with('success', 'Biaya ongkir berhasil diperbarui!');
     }
 }

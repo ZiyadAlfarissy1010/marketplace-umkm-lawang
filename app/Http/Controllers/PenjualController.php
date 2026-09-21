@@ -86,7 +86,20 @@ class PenjualController extends Controller
         ]);
     }
 
-    // UPDATE: Logika konfirmasi pembayaran transfer
+    // FUNGSI BARU: CETAK INVOICE / STRUK PESANAN
+    public function printInvoice($id)
+    {
+        $toko = Auth::user()->toko;
+        
+        // Pastikan pesanan ini benar-benar milik toko si penjual (keamanan)
+        $pesanan = Pesanan::whereHas('detailPesanans.produk', function($query) use ($toko) {
+            $query->where('toko_id', $toko->id);
+        })->with('user', 'detailPesanans.produk')->findOrFail($id);
+
+        return view('penjual.invoice', compact('pesanan', 'toko'));
+    }
+
+    // UPDATE: Logika konfirmasi pembayaran transfer & Notifikasi Pembeli
     public function updateStatusPesanan(Request $request, $id)
     {
         $pesanan = Pesanan::findOrFail($id);
@@ -95,6 +108,7 @@ class PenjualController extends Controller
         if ($request->has('konfirmasi_bayar')) {
             if ($pesanan->status == 'dibayar') {
                 $pesanan->status = 'diproses';
+                $pesanan->buyer_seen = false; // MUNCULIN NOTIF PEMBELI
                 $pesanan->save();
                 return back()->with('success', 'Pembayaran dikonfirmasi! Silakan proses pesanan ini.');
             }
@@ -102,6 +116,7 @@ class PenjualController extends Controller
 
         // Logika ubah status biasa
         $pesanan->status = $request->status;
+        $pesanan->buyer_seen = false; // MUNCULIN NOTIF PEMBELI
         $pesanan->save();
         return back()->with('success', 'Status pesanan berhasil diperbarui!');
     }

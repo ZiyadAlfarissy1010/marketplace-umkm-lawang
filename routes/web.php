@@ -25,6 +25,7 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/login', [AuthController::class, 'login'])->name('login.process');
 Route::post('/register', [AuthController::class, 'register'])->name('register.process');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
 // Routing Lupa Password
 Route::get('/forgot-password', [AuthController::class, 'showForgotForm'])->name('password.request');
 Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
@@ -60,6 +61,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     
     // Lihat Produk Toko (AJAX)
     Route::get('/admin/toko/{id}/produk', [AdminController::class, 'lihatProdukToko'])->name('admin.toko.produk');
+
+    // Pengaturan Ongkir (BARU)
+    Route::get('/admin/ongkir', [AdminController::class, 'ongkirIndex'])->name('admin.ongkir');
+    Route::post('/admin/ongkir', [AdminController::class, 'ongkirUpdate'])->name('admin.ongkir.update');
 });
 
 // Routing Penjual (UMKM)
@@ -81,9 +86,13 @@ Route::middleware(['auth', 'role:penjual'])->group(function () {
     Route::get('/penjual/produk/{id}/edit', [PenjualController::class, 'editProduk'])->name('penjual.produk.edit');
     Route::put('/penjual/produk/{id}', [PenjualController::class, 'updateProduk'])->name('penjual.produk.update');
     Route::delete('/penjual/produk/{id}', [PenjualController::class, 'destroyProduk'])->name('penjual.produk.destroy');
+    
     // Route Detail Pesanan Penjual (AJAX)
     Route::get('/penjual/pesanan/{id}/detail', [PenjualController::class, 'pesananDetail'])->name('penjual.pesanan.detail');
-    });
+   
+    // Route Cetak Invoice (BARU)
+    Route::get('/penjual/pesanan/{id}/invoice', [PenjualController::class, 'printInvoice'])->name('penjual.pesanan.invoice');
+});
 
 // Routing Pembeli
 Route::middleware(['auth', 'role:pembeli'])->group(function () {
@@ -105,6 +114,14 @@ Route::middleware(['auth', 'role:pembeli'])->group(function () {
     Route::get('/pembeli/pesanan/{id}/detail', [PembeliController::class, 'pesananDetail'])->name('pembeli.detail');
     Route::post('/pembeli/pesanan/{id}/batalkan', [PembeliController::class, 'batalkanPesanan'])->name('pembeli.batalkan');
     Route::post('/pembeli/pesanan/{id}/terima', [PembeliController::class, 'terimaBarang'])->name('pembeli.terima');
-        // Route Upload Bukti Bayar (BARU)
+    
+    // Route Upload Bukti Bayar
     Route::post('/pembeli/pesanan/{id}/upload-bukti', [PembeliController::class, 'uploadBuktiBayar'])->name('pembeli.upload_bukti');
+    
+    // Route Kirim Ulasan
+    Route::post('/pembeli/pesanan/{id}/review', [PembeliController::class, 'storeReview'])->name('pembeli.review.store');
+
+    // Route Wishlist (BARU)
+    Route::get('/pembeli/wishlist', [PembeliController::class, 'wishlist'])->name('pembeli.wishlist');
+    Route::post('/pembeli/wishlist/toggle/{produk_id}', [PembeliController::class, 'toggleWishlist'])->name('pembeli.wishlist.toggle');
 });

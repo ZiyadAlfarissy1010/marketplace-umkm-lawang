@@ -25,18 +25,12 @@
         .custom-toast.error { border-left-color: #dc3545; }
         .cart-item-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
         
-        /* Style Badge Keranjang */
-        .cart-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background-color: #FF6B6B;
-            color: white;
-            border-radius: 50%;
-            font-size: 10px;
-            padding: 2px 6px;
-            font-weight: bold;
-            display: none;
+        /* Style Badge Keranjang & Notif Pesanan */
+        .cart-badge { position: absolute; top: -5px; right: -5px; background-color: #FF6B6B; color: white; border-radius: 50%; font-size: 10px; padding: 2px 6px; font-weight: bold; display: none; animation: pulse-badge 2s infinite; }
+        @keyframes pulse-badge {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(255, 107, 107, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
         }
     </style>
 </head>
@@ -59,8 +53,18 @@
                 <form action="/pembeli/checkout" method="POST" id="formCheckout">
                     @csrf
                     <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold"><i class="bi bi-truck"></i> Pilih Ekspedisi Pengiriman</label>
+                            <select name="ekspedisi" class="form-select" required>
+                                <option value="">-- Pilih Jasa Kirim --</option>
+                                <option value="JNE">JNE</option>
+                                <option value="J&T">J&T Express</option>
+                                <option value="SiCepat">SiCepat</option>
+                                <option value="Pos Indonesia">Pos Indonesia</option>
+                            </select>
+                            <small class="text-muted">Biaya ongkir flat: Rp {{ number_format($ongkir, 0, ',', '.') }} per toko.</small>
+                        </div>
                         <p class="text-muted small">Silakan pilih bagaimana Anda ingin menyelesaikan pembayaran untuk pesanan ini.</p>
-                        
                         <div class="form-check border rounded-3 p-3 mb-2">
                             <input class="form-check-input" type="radio" name="metode_pembayaran" value="whatsapp" id="metodeWa" checked required>
                             <label class="form-check-label w-100" for="metodeWa">
@@ -68,7 +72,6 @@
                                 <small class="d-block text-muted">Konfirmasi pembayaran langsung ke penjual via chat WhatsApp.</small>
                             </label>
                         </div>
-
                         <div class="form-check border rounded-3 p-3 mb-2">
                             <input class="form-check-input" type="radio" name="metode_pembayaran" value="transfer" id="metodeTransfer" required>
                             <label class="form-check-label w-100" for="metodeTransfer">
@@ -76,7 +79,6 @@
                                 <small class="d-block text-muted">Transfer ke rekening penjual, lalu unggah bukti transfer di halaman pesanan.</small>
                             </label>
                         </div>
-                        
                         <div class="form-check border rounded-3 p-3">
                             <input class="form-check-input" type="radio" name="metode_pembayaran" value="qris" id="metodeQris" required>
                             <label class="form-check-label w-100" for="metodeQris">
@@ -107,7 +109,19 @@
                             <span class="cart-badge" id="cartCount" style="@if($cartCount > 0) display: inline; @else display: none; @endif">{{ $cartCount }}</span>
                         </a>
                     </li>
-                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('pembeli.dashboard') ? 'active-nav' : '' }}" href="/pembeli/dashboard">Pesanan</a></li>
+                    <li class="nav-item position-relative">
+                        <a class="nav-link {{ request()->routeIs('pembeli.dashboard') ? 'active-nav' : '' }}" href="/pembeli/dashboard">
+                            Pesanan
+                            @if($newOrdersCount > 0)
+                                <span class="cart-badge" style="top: 0; right: -10px; display: inline;">{{ $newOrdersCount }}</span>
+                            @endif
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('pembeli.wishlist') ? 'active-nav' : '' }}" href="/pembeli/wishlist">
+                            <i class="bi bi-heart-fill fs-5"></i>
+                        </a>
+                    </li>
                     <li class="nav-item ms-2">
                         <a class="nav-link p-0" href="/profile/edit" title="Edit Profil">
                             <img src="{{ auth()->user()->foto ? asset('storage/'.auth()->user()->foto) : 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=1B4332&color=fff' }}" class="rounded-circle" width="35" height="35" style="object-fit: cover; border: 2px solid #FFFFFF;" alt="Foto Profil">
@@ -172,6 +186,16 @@
                             </tbody>
                             <tfoot>
                                 <tr>
+                                    <td colspan="3" class="text-end fw-bold">Subtotal Produk:</td>
+                                    <td class="fw-bold" id="subtotal-produk">Rp 0</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end fw-bold">Ongkir (per toko):</td>
+                                    <td class="fw-bold">Rp {{ number_format($ongkir, 0, ',', '.') }}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
                                     <td colspan="3" class="text-end fw-bold fs-5">Total Bayar:</td>
                                     <td class="text-danger fw-bold fs-5" id="grand-total">Rp 0</td>
                                     <td></td>
@@ -181,7 +205,6 @@
                     </div>
                     <div class="d-flex justify-content-between mt-4 flex-wrap gap-2">
                         <a href="/katalog" class="btn btn-outline-secondary rounded-pill px-4"><i class="bi bi-arrow-left"></i> Lanjut Belanja</a>
-                        <!-- Tombol Checkout sekarang memunculkan Modal -->
                         <button type="button" class="btn btn-primary-custom btn-lg rounded-pill px-5" data-bs-toggle="modal" data-bs-target="#paymentModal">
                             Checkout Sekarang <i class="bi bi-arrow-right"></i>
                         </button>
@@ -210,13 +233,15 @@
     <script>
         function hitungTotal() {
             let grandTotal = 0;
+            let ongkir = {{ $ongkir }};
             document.querySelectorAll('.jumlah-item').forEach(function(input) {
                 let jumlah = input.value, harga = input.getAttribute('data-harga'), subtotal = jumlah * harga;
                 let row = input.parentElement.parentElement;
                 row.querySelector('.subtotal-cell').innerText = 'Rp ' + subtotal.toLocaleString('id-ID');
                 grandTotal += subtotal;
             });
-            document.getElementById('grand-total').innerText = 'Rp ' + grandTotal.toLocaleString('id-ID');
+            document.getElementById('subtotal-produk').innerText = 'Rp ' + grandTotal.toLocaleString('id-ID');
+            document.getElementById('grand-total').innerText = 'Rp ' + (grandTotal + ongkir).toLocaleString('id-ID');
         }
 
         function updateJumlah(input) {
@@ -237,11 +262,9 @@
             });
         }
 
-        // Validasi stok sebelum modal checkout di-submit
         document.getElementById('formCheckout').addEventListener('submit', function(e) {
             e.preventDefault(); 
             let csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-
             fetch('/pembeli/checkout/cek-stok', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
@@ -251,10 +274,7 @@
                 if(data.success) {
                     e.target.submit();
                 } else {
-                    // Tutup modal pembayaran
                     bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-                    
-                    // Tampilkan error di toast
                     let toast = document.getElementById('cartToast');
                     toast.className = 'toast custom-toast error';
                     document.getElementById('toastMessage').innerHTML = `<i class="bi bi-x-circle-fill text-danger me-2"></i> <strong>Gagal!</strong> ${data.message}`;

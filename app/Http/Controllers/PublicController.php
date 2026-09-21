@@ -16,7 +16,7 @@ class PublicController extends Controller
         return view('public.beranda', compact('produks'));
     }
 
-    // Halaman Katalog (Dengan Pencarian & Filter)
+    // Halaman Katalog (Dengan Pencarian, Filter, & Pagination)
     public function katalog(Request $request)
     {
         $query = Produk::with('toko')->latest();
@@ -31,7 +31,10 @@ class PublicController extends Controller
             $query->where('kategori_id', $request->kategori);
         }
 
-        $produks = $query->get();
+        // UBAH get() MENJADI paginate(8) -> 8 produk per halaman
+        // appends(request()->query()) berfungsi agar saat pindah halaman, filter kategori/pencarian tetap tersimpan
+        $produks = $query->paginate(8)->appends(request()->query());
+        
         $kategoris = Kategori::all();
         
         return view('public.katalog', compact('produks', 'kategoris'));

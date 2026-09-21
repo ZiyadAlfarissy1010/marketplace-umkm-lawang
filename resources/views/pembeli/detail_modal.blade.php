@@ -1,65 +1,70 @@
-@php
-    // Kelompokkan detail pesanan berdasarkan ID Toko
-    $groupedDetails = $pesanan->detailPesanans->groupBy(function($item) {
-        return $item->produk->toko_id;
-    });
-@endphp
-
 <ul class="list-group list-group-flush">
-    @foreach($groupedDetails as $tokoId => $details)
+    @foreach($pesanan->detailPesanans as $detail)
+    <li class="list-group-item d-flex align-items-center gap-3 px-0">
+        @if(str_starts_with($detail->produk->gambar, 'http'))
+            <img src="{{ $detail->produk->gambar }}" width="60" height="60" style="object-fit:cover; border-radius:8px;" alt="...">
+        @else
+            <img src="{{ asset('storage/'.$detail->produk->gambar) }}" width="60" height="60" style="object-fit:cover; border-radius:8px;" alt="...">
+        @endif
+        <div class="flex-grow-1">
+            <h6 class="mb-0">{{ $detail->produk->nama_produk }}</h6>
+            <small class="text-muted">{{ $detail->jumlah }} x Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}</small>
+        </div>
+        <span class="fw-bold text-success">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</span>
+    </li>
+
+    {{-- FORM ULASAN (HANYA MUNCUL JIKA PESANAN SELESAI) --}}
+    @if($pesanan->status == 'selesai')
         @php
-            $toko = $details->first()->produk->toko;
-            
-            // Format nomor WA (hilangkan angka 0 di depan, ganti dengan 62)
-            $noTelp = preg_replace('/[^0-9]/', '', $toko->user->no_telp);
-            if (substr($noTelp, 0, 1) === '0') {
-                $noTelp = '62' . substr($noTelp, 1);
-            }
-            
-            // Buat teks pesan WhatsApp
-            $pesan = "Halo *{$toko->nama_toko}*, saya baru saja melakukan pemesanan di UMKM Lawang.\n\n";
-            $pesan .= "Kode Pesanan: *#ORD-{$pesanan->id}*\n";
-            $pesan .= "Daftar Pesanan:\n";
-            $totalToko = 0;
-            foreach ($details as $d) {
-                $pesan .= "- {$d->produk->nama_produk} (x{$d->jumlah}) : Rp " . number_format($d->subtotal, 0, ',', '.') . "\n";
-                $totalToko += $d->subtotal;
-            }
-            $pesan .= "\nTotal: Rp " . number_format($totalToko, 0, ',', '.') . "\n\n";
-            $pesan .= "Mohon konfirmasi ketersediaan dan pengiriman ya. Terima kasih!";
-            
-            // Encode pesan agar bisa dikirim via URL
-            $waLink = "https://wa.me/{$noTelp}?text=" . rawurlencode($pesan);
+            // Cek apakah sudah pernah ngasih ulasan
+            $sudahUlas = App\Models\Review::where('user_id', $pesanan->user_id)
+                            ->where('produk_id', $detail->produk_id)
+                            ->where('pesanan_id', $pesanan->id)
+                            ->exists();
         @endphp
         
-        <li class="list-group-item mb-3 p-3 rounded-3" style="background-color: #f8f9fa; border: 1px solid #e9ecef;">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0 text-success"><i class="bi bi-shop"></i> {{ $toko->nama_toko }}</h6>
-                <a href="{{ $waLink }}" target="_blank" class="btn btn-sm btn-success rounded-pill fw-bold">
-                    <i class="bi bi-whatsapp"></i> Chat Penjual
-                </a>
-            </div>
-            <ul class="list-unstyled mb-0">
-                @foreach($details as $detail)
-                    <li class="d-flex align-items-center gap-2 mb-2">
-                        @if(str_starts_with($detail->produk->gambar, 'http'))
-                            <img src="{{ $detail->produk->gambar }}" width="50" height="50" style="object-fit:cover; border-radius:8px;" alt="...">
-                        @else
-                            <img src="{{ asset('storage/'.$detail->produk->gambar) }}" width="50" height="50" style="object-fit:cover; border-radius:8px;" alt="...">
-                        @endif
-                        <div class="flex-grow-1">
-                            <h6 class="mb-0" style="font-size: 0.9rem;">{{ $detail->produk->nama_produk }}</h6>
-                            <small class="text-muted">{{ $detail->jumlah }} x Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}</small>
-                        </div>
-                        <span class="fw-bold text-success small">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</span>
-                    </li>
-                @endforeach
-            </ul>
+        <li class="list-group-item px-0 mb-3 border-top-0">
+            @if($sudahUlas)
+                <div class="text-center text-muted small py-2">
+                    <i class="bi bi-check-circle-fill text-success"></i> Anda sudah memberikan ulasan untuk produk ini.
+                </div>
+            @else
+                <form action="/pembeli/pesanan/{{ $pesanan->id }}/review" method="POST" class="p-2 border rounded bg-light">
+                    @csrf
+                    <input type="hidden" name="produk_id" value="{{ $detail->produk_id }}">
+                    <h6 class="mb-2">Beri Ulasan Produk:</h6>
+                    <div class="mb-2">
+                        <select name="rating" class="form-select form-select-sm" required>
+                            <option value="">Pilih Rating Bintang</option>
+                            <option value="5">★★★★★ (Sangat Puas)</option>
+                            <option value="4">★★★★ (Puas)</option>
+                            <option value="3">★★★ (Cukup)</option>
+                            <option value="2">★★ (Kurang)</option>
+                            <option value="1">★ (Kecewa)</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <textarea name="komentar" class="form-control form-control-sm" rows="2" placeholder="Tulis komentar (opsional)..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary-custom w-100 rounded-pill">Kirim Ulasan</button>
+                </form>
+            @endif
         </li>
+    @endif
     @endforeach
 </ul>
 
-<div class="d-flex justify-content-between mt-3 pt-3 border-top">
-    <h5 class="mb-0">Total Pembayaran Keseluruhan</h5>
-    <h5 class="mb-0 fw-bold text-success">Rp {{ number_format($pesanan->total_harga, 0, ',', '.') }}</h5>
+<div class="mt-3 pt-3 border-top">
+    <div class="d-flex justify-content-between mb-2">
+        <span class="text-muted">Subtotal Produk</span>
+        <span class="fw-semibold">Rp {{ number_format($pesanan->total_harga - $pesanan->ongkir, 0, ',', '.') }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2">
+        <span class="text-muted">Ongkir ({{ $pesanan->ekspedisi }})</span>
+        <span class="fw-semibold">Rp {{ number_format($pesanan->ongkir, 0, ',', '.') }}</span>
+    </div>
+    <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+        <h5 class="mb-0">Total Pembayaran</h5>
+        <h5 class="mb-0 fw-bold text-success">Rp {{ number_format($pesanan->total_harga, 0, ',', '.') }}</h5>
+    </div>
 </div>

@@ -38,11 +38,25 @@
             <small>Dashboard UMKM</small>
         </div>
         <ul class="sidebar-menu">
-            <li><a href="/penjual/dashboard"><i class="bi bi-grid"></i> Dashboard</a></li>
-            <li><a href="/penjual/pesanan" class="active"><i class="bi bi-bag-check"></i> Pesanan Masuk</a></li>
-            <li><a href="/penjual/laporan"><i class="bi bi-graph-up"></i> Laporan Penjualan</a></li>
-            <li><a href="/penjual/profil"><i class="bi bi-shop-window"></i> Profil Toko</a></li>
-            <li><a href="/profile/edit"><i class="bi bi-person-circle"></i> Profil Akun</a></li>
+            <li>
+                <a href="/penjual/dashboard" class="{{ request()->routeIs('penjual.dashboard') ? 'active' : '' }}">
+                    <i class="bi bi-grid"></i> Dashboard
+                    @if(isset($lowStockCount) && $lowStockCount > 0)
+                        <span class="badge bg-danger rounded-pill ms-auto">{{ $lowStockCount }}</span>
+                    @endif
+                </a>
+            </li>
+            <li>
+                <a href="/penjual/pesanan" class="{{ request()->routeIs('penjual.pesanan') ? 'active' : '' }}">
+                    <i class="bi bi-bag-check"></i> Pesanan Masuk 
+                    @if(isset($newOrdersCount) && $newOrdersCount > 0) 
+                        <span class="badge bg-danger rounded-pill ms-auto">{{ $newOrdersCount }}</span> 
+                    @endif
+                </a>
+            </li>
+            <li><a href="/penjual/laporan" class="{{ request()->routeIs('penjual.laporan') ? 'active' : '' }}"><i class="bi bi-graph-up"></i> Laporan Penjualan</a></li>
+            <li><a href="/penjual/profil" class="{{ request()->routeIs('penjual.profil') ? 'active' : '' }}"><i class="bi bi-shop-window"></i> Profil Toko</a></li>
+            <li><a href="/profile/edit" class="{{ request()->routeIs('profile.edit') ? 'active' : '' }}"><i class="bi bi-person-circle"></i> Profil Akun</a></li>
         </ul>
         <div class="sidebar-footer">
             <form action="/logout" method="POST">
@@ -60,9 +74,7 @@
                     <h5 class="modal-title"><i class="bi bi-receipt-cutoff"></i> Detail Pesanan Pembeli</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-4" id="detailModalBody">
-                    <!-- Isi detail akan dimasukkan di sini oleh JavaScript -->
-                </div>
+                <div class="modal-body p-4" id="detailModalBody"></div>
             </div>
         </div>
     </div>
@@ -84,6 +96,7 @@
                             <th>Kode</th>
                             <th>Pembeli</th>
                             <th>Total</th>
+                            <th>Ekspedisi</th>
                             <th>Metode Bayar</th>
                             <th>Status</th>
                             <th>Aksi</th>
@@ -96,6 +109,7 @@
                                 <td class="fw-bold">#ORD-{{ $pesanan->id }}</td>
                                 <td>{{ $pesanan->user->name }}</td>
                                 <td class="text-success fw-bold">Rp {{ number_format($pesanan->total_harga, 0, ',', '.') }}</td>
+                                <td><span class="badge bg-secondary"><i class="bi bi-truck"></i> {{ $pesanan->ekspedisi }}</span></td>
                                 <td>
                                     @if($pesanan->metode_pembayaran == 'transfer')
                                         <span class="badge bg-secondary"><i class="bi bi-bank"></i> Transfer</span>
@@ -117,7 +131,6 @@
                                 </td>
                                 <td>
                                     <div class="d-flex flex-column gap-2">
-                                        <!-- TOMBOL LIHAT DETAIL BARU -->
                                         <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="lihatDetail({{ $pesanan->id }})">
                                             <i class="bi bi-eye"></i> Detail Pesanan
                                         </button>
@@ -158,7 +171,7 @@
                             </tr>
                             @endforeach
                         @else
-                            <tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Belum ada pesanan masuk.</td></tr>
+                            <tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Belum ada pesanan masuk.</td></tr>
                         @endif
                     </tbody>
                 </table>
@@ -167,12 +180,8 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-            document.getElementById('overlay').classList.toggle('active');
-        }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); document.getElementById('overlay').classList.toggle('active'); }
 
-        // Script AJAX untuk Lihat Detail Pesanan
         function lihatDetail(pesananId) {
             fetch(`/penjual/pesanan/${pesananId}/detail`, {
                 method: 'GET',

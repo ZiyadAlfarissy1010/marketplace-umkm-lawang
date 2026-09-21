@@ -15,7 +15,7 @@
         .sidebar { width: 250px; background-color: var(--primary-dark); color: var(--white); height: 100vh; position: fixed; top: 0; left: 0; padding: 20px 0; display: flex; flex-direction: column; transition: transform 0.3s ease-in-out; z-index: 1030; }
         .sidebar-header { text-align: center; padding: 20px 10px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
         .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
-        .sidebar-menu li a { display: block; padding: 15px 25px; color: rgba(255,255,255,0.8); text-decoration: none; transition: 0.3s; }
+        .sidebar-menu li a { display: flex; align-items: center; padding: 15px 25px; color: rgba(255,255,255,0.8); text-decoration: none; transition: 0.3s; }
         .sidebar-menu li a:hover, .sidebar-menu li a.active { background-color: var(--primary-mid); color: var(--white); border-left: 4px solid var(--white); }
         .sidebar-menu li a i { margin-right: 10px; }
         .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
@@ -32,12 +32,12 @@
             .sidebar-overlay.active { display: block; }
         }
         body {
-    animation: fadeInBody 0.4s ease-in-out;
-}
-@keyframes fadeInBody {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
+            animation: fadeInBody 0.4s ease-in-out;
+        }
+        @keyframes fadeInBody {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -50,11 +50,25 @@
             <small>Dashboard UMKM</small>
         </div>
         <ul class="sidebar-menu">
-            <li><a href="/penjual/dashboard" class="active"><i class="bi bi-grid"></i> Dashboard</a></li>
-            <li><a href="/penjual/pesanan"><i class="bi bi-bag-check"></i> Pesanan Masuk @if(isset($newOrdersCount) && $newOrdersCount > 0) <span class="badge bg-danger rounded-pill ms-2">{{ $newOrdersCount }}</span> @endif</a></li>
-            <li><a href="/penjual/laporan"><i class="bi bi-graph-up"></i> Laporan Penjualan</a></li>
-            <li><a href="/penjual/profil"><i class="bi bi-shop-window"></i> Profil Toko</a></li>
-            <li><a href="/profile/edit"><i class="bi bi-person-circle"></i> Profil Akun</a></li>
+            <li>
+                <a href="/penjual/dashboard" class="{{ request()->routeIs('penjual.dashboard') ? 'active' : '' }}">
+                    <i class="bi bi-grid"></i> Dashboard
+                    @if(isset($lowStockCount) && $lowStockCount > 0)
+                        <span class="badge bg-danger rounded-pill ms-auto">{{ $lowStockCount }}</span>
+                    @endif
+                </a>
+            </li>
+            <li>
+                <a href="/penjual/pesanan" class="{{ request()->routeIs('penjual.pesanan') ? 'active' : '' }}">
+                    <i class="bi bi-bag-check"></i> Pesanan Masuk 
+                    @if(isset($newOrdersCount) && $newOrdersCount > 0) 
+                        <span class="badge bg-danger rounded-pill ms-auto">{{ $newOrdersCount }}</span> 
+                    @endif
+                </a>
+            </li>
+            <li><a href="/penjual/laporan" class="{{ request()->routeIs('penjual.laporan') ? 'active' : '' }}"><i class="bi bi-graph-up"></i> Laporan Penjualan</a></li>
+            <li><a href="/penjual/profil" class="{{ request()->routeIs('penjual.profil') ? 'active' : '' }}"><i class="bi bi-shop-window"></i> Profil Toko</a></li>
+            <li><a href="/profile/edit" class="{{ request()->routeIs('profile.edit') ? 'active' : '' }}"><i class="bi bi-person-circle"></i> Profil Akun</a></li>
         </ul>
         <div class="sidebar-footer">
             <form action="/logout" method="POST">
@@ -124,10 +138,12 @@
                                 <td>{{ $produk->kategori->nama_kategori }}</td>
                                 <td class="text-success fw-bold">Rp {{ number_format($produk->harga, 0, ',', '.') }}</td>
                                 <td>
-                                    @if($produk->stok > 0)
-                                        <span class="badge bg-light text-dark">{{ $produk->stok }} Tersedia</span>
-                                    @else
+                                    @if($produk->stok == 0)
                                         <span class="badge bg-danger">Habis</span>
+                                    @elseif($produk->stok <= 5)
+                                        <span class="badge bg-warning text-dark">Stok Menipis ({{ $produk->stok }})</span>
+                                    @else
+                                        <span class="badge bg-light text-dark">{{ $produk->stok }} Tersedia</span>
                                     @endif
                                 </td>
                                 <td>

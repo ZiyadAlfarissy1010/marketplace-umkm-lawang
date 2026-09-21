@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola Pengguna - UMKM Lawang</title>
+    <title>Pengaturan Ongkir - UMKM Lawang</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <style>
@@ -17,38 +17,13 @@
         .sidebar-menu li a i { margin-right: 10px; }
         .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
         .main-content { margin-left: 250px; padding: 30px; transition: margin-left 0.3s ease; }
-        .custom-card { background-color: var(--white); border-radius: 15px; box-shadow: 0 4px 15px rgba(27, 67, 50, 0.05); border: none; padding: 20px; }
+        .custom-card { background-color: var(--white); border-radius: 15px; box-shadow: 0 4px 15px rgba(27, 67, 50, 0.05); border: none; padding: 30px; }
+        .btn-success-custom { background-color: var(--primary-dark); border: none; color: var(--white); }
+        .btn-success-custom:hover { background-color: var(--primary-mid); color: var(--white); }
         .mobile-toggle { display: none; background-color: var(--primary-dark); color: white; border: none; padding: 10px 15px; border-radius: 10px; font-size: 1.2rem; margin-bottom: 15px; }
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1020; }
-        @media (max-width: 992px) {
-            .sidebar { transform: translateX(-100%); } .sidebar.active { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 15px; } .mobile-toggle { display: inline-block; }
-            .sidebar-overlay.active { display: block; }
-        }
-   body {
-    animation: fadeInBody 0.4s ease-in-out;
-}
-@keyframes fadeInBody {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-@keyframes pulse-badge {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
-    70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(255, 107, 107, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
-}
-
-/* Ganti selector sesuai halaman */
-/* Untuk Halaman Pembeli (Katalog/Beranda) */
-.cart-badge {
-    animation: pulse-badge 2s infinite;
-}
-
-/* Untuk Halaman Admin & Penjual (Sidebar) */
-.sidebar-menu .badge.bg-danger {
-    animation: pulse-badge 2s infinite;
-}
-   </style>
+        @media (max-width: 992px) { .sidebar { transform: translateX(-100%); } .sidebar.active { transform: translateX(0); } .main-content { margin-left: 0; padding: 15px; } .mobile-toggle { display: inline-block; } .sidebar-overlay.active { display: block; } }
+    </style>
 </head>
 <body>
     <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
@@ -58,41 +33,31 @@
             <li><a href="/admin/dashboard"><i class="bi bi-grid"></i> Dashboard</a></li>
             <li><a href="/admin/kategori"><i class="bi bi-tags"></i> Kelola Kategori</a></li>
             <li><a href="/admin/verifikasi"><i class="bi bi-shop"></i> Verifikasi Toko @if(isset($pendingTokoCount) && $pendingTokoCount > 0) <span class="badge bg-danger rounded-pill ms-auto">{{ $pendingTokoCount }}</span> @endif</a></li>
-            <li><a href="/admin/pengguna" class="active"><i class="bi bi-people"></i> Kelola Pengguna</a></li>
-            <li><a href="/profile/edit"><i class="bi bi-person-circle"></i> Profil Akun</a></li>
-            <li><a href="/admin/ongkir"><i class="bi bi-truck"></i> Pengaturan Ongkir</a></li>
+            <li><a href="/admin/pengguna"><i class="bi bi-people"></i> Kelola Pengguna</a></li>
+            <li><a href="/admin/ongkir" class="active"><i class="bi bi-truck"></i> Pengaturan Ongkir</a></li>
         </ul>
         <div class="sidebar-footer"><form action="/logout" method="POST">@csrf<button type="submit" class="btn btn-outline-light w-100 rounded-pill"><i class="bi bi-box-arrow-right"></i> Logout</button></form></div>
     </div>
+
     <div class="main-content">
         <button class="mobile-toggle" onclick="toggleSidebar()"><i class="bi bi-list"></i> Menu</button>
-        <h2 class="fw-bold mb-4"><i class="bi bi-people"></i> Kelola Pengguna</h2>
+        <h2 class="fw-bold mb-4"><i class="bi bi-truck"></i> Pengaturan Ongkos Kirim</h2>
+
         @if(session('success'))<div class="alert alert-success rounded-pill">{{ session('success') }}</div>@endif
-        @if(session('error'))<div class="alert alert-danger rounded-pill">{{ session('error') }}</div>@endif
+
         <div class="custom-card">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>No. Telepon</th><th class="text-end">Aksi</th></tr></thead>
-                    <tbody>
-                        @foreach($users as $user)
-                        <tr>
-                            <td class="fw-semibold">{{ $user->name }}</td>
-                            <td>{{ $user->email }}</td>
-                            <td>@if($user->role == 'admin') <span class="badge bg-dark">Admin</span> @elseif($user->role == 'penjual') <span class="badge bg-primary">Penjual</span> @else <span class="badge bg-info text-dark">Pembeli</span> @endif</td>
-                            <td>{{ $user->no_telp }}</td>
-                            <td class="text-end">
-                                <form action="/admin/pengguna/{{ $user->id }}" method="POST" onsubmit="return confirm('Yakin hapus pengguna ini?')">
-                                    @csrf @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill" @if(auth()->id() == $user->id) disabled @endif><i class="bi bi-trash"></i> Hapus</button>
-                                </form>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+            <p class="text-muted">Atur biaya ongkos kirim flat (seragam) untuk semua pesanan. Biaya ini akan otomatis ditambahkan ke total pembelian pembeli saat checkout.</p>
+            <form action="/admin/ongkir" method="POST" style="max-width: 400px;">
+                @csrf
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Biaya Ongkir (Rp)</label>
+                    <input type="number" name="ongkir" class="form-control" value="{{ $ongkir }}" required min="0">
+                </div>
+                <button type="submit" class="btn btn-success-custom rounded-pill px-4"><i class="bi bi-save"></i> Simpan Pengaturan</button>
+            </form>
         </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); document.getElementById('overlay').classList.toggle('active'); }</script>
 </body>

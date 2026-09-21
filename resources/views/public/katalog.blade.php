@@ -45,7 +45,6 @@
         .btn-primary-custom i { transition: transform 0.3s ease; }
         .btn-primary-custom:hover i { transform: translateX(5px); }
 
-        /* Kartu Produk */
         .product-card { background-color: var(--white); border: 1px solid #e9ecef; border-radius: 12px; transition: transform 0.2s ease, box-shadow 0.2s ease; overflow: hidden; position: relative; }
         .product-card::before { content: 'UMKM Lokal'; position: absolute; top: 10px; left: 10px; background-color: rgba(27, 67, 50, 0.9); color: var(--white); font-size: 0.7rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; z-index: 2; backdrop-filter: blur(4px); }
         .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(27, 67, 50, 0.1); border-color: var(--primary-mid); }
@@ -56,28 +55,29 @@
         
         .footer-custom { background-color: var(--primary-dark); color: var(--white); padding: 2.5rem 0; margin-top: 6rem; flex-shrink: 0; border-top: 4px solid var(--primary-mid); }
         
-        /* Sidebar Filter Kategori */
         .filter-card { background-color: var(--white); border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(27, 67, 50, 0.05); position: sticky; top: 90px; padding: 20px; }
         .filter-card h5 { font-size: 1.1rem; }
         
-        /* Input Search di Filter */
         .filter-search { position: relative; }
         .filter-search input { border-radius: 10px; padding-left: 38px; background-color: #f8f9fa; border: 1px solid #e9ecef; }
         .filter-search input:focus { border-color: var(--primary-mid); box-shadow: 0 0 0 0.2rem rgba(45, 106, 79, 0.15); background-color: var(--white); }
         .filter-search i { position: absolute; top: 50%; left: 12px; transform: translateY(-50%); color: #6c757d; }
 
-        /* List Kategori */
         .list-group-filter { max-height: 400px; overflow-y: auto; padding-right: 5px; }
         .list-group-filter .list-group-item { border: none; border-radius: 8px !important; margin-bottom: 5px; transition: 0.3s; display: flex; align-items: center; justify-content: space-between; padding: 10px 15px; font-weight: 500; color: var(--text-dark); }
         .list-group-filter .list-group-item:hover { background-color: var(--bg-light); color: var(--primary-dark); transform: translateX(5px); }
         .list-group-filter .list-group-item.active { background-color: var(--primary-dark); color: var(--white); box-shadow: 0 4px 10px rgba(27, 67, 50, 0.2); }
         
-        /* Toast Notif */
         .toast-container { position: fixed; bottom: 20px; left: 20px; z-index: 1050; }
         .custom-toast { background-color: var(--white); color: var(--text-dark); border-left: 5px solid var(--primary-dark); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         
-        /* Style Badge Keranjang */
-        .cart-badge { position: absolute; top: -5px; right: -5px; background-color: #FF6B6B; color: white; border-radius: 50%; font-size: 10px; padding: 2px 6px; font-weight: bold; display: none; }
+        /* Style Badge Keranjang & Notif Pesanan */
+        .cart-badge { position: absolute; top: -5px; right: -5px; background-color: #FF6B6B; color: white; border-radius: 50%; font-size: 10px; padding: 2px 6px; font-weight: bold; display: none; animation: pulse-badge 2s infinite; }
+        @keyframes pulse-badge {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(255, 107, 107, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+        }
     </style>
 </head>
 <body>
@@ -107,7 +107,19 @@
                                 <span class="cart-badge" id="cartCount" style="@if($cartCount > 0) display: inline; @else display: none; @endif">{{ $cartCount }}</span>
                             </a>
                         </li>
-                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('pembeli.dashboard') ? 'active-nav' : '' }}" href="/pembeli/dashboard">Pesanan</a></li>
+                        <li class="nav-item position-relative">
+                            <a class="nav-link {{ request()->routeIs('pembeli.dashboard') ? 'active-nav' : '' }}" href="/pembeli/dashboard">
+                                Pesanan
+                                @if($newOrdersCount > 0)
+                                    <span class="cart-badge" style="top: 0; right: -10px; display: inline;">{{ $newOrdersCount }}</span>
+                                @endif
+                            </a>
+                        </li>
+                                                <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('pembeli.wishlist') ? 'active-nav' : '' }}" href="/pembeli/wishlist">
+                                <i class="bi bi-heart-fill fs-5"></i>
+                            </a>
+                        </li>
                         <li class="nav-item ms-2">
                             <a class="nav-link p-0" href="/profile/edit" title="Edit Profil">
                                 <img src="{{ auth()->user()->foto ? asset('storage/'.auth()->user()->foto) : 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=1B4332&color=fff' }}" class="rounded-circle" width="35" height="35" style="object-fit: cover; border: 2px solid #FFFFFF;" alt="Foto Profil">
@@ -131,12 +143,10 @@
                 <!-- Sidebar Filter -->
                 <div class="col-lg-3 mb-4">
                     <div class="filter-card">
-                         <!-- Fitur Pencarian Kategori -->
-                        <div class="filter-search mb-3">
+                         <div class="filter-search mb-3">
                             <i class="bi bi-search"></i>
                             <input type="text" id="searchKategori" class="form-control form-control-sm" placeholder="Cari kategori..." onkeyup="filterKategori()">
                         </div>
-
                         <ul class="list-group list-group-filter" id="listKategori">
                             <a href="{{ route('katalog') }}" class="list-group-item {{ !request('kategori') ? 'active' : '' }}">Semua Kategori</a>
                             @foreach($kategoris as $kategori)
@@ -155,7 +165,10 @@
                     <div class="row g-4">
                         @foreach($produks as $produk)
                             <div class="col-6 col-md-4 col-sm-6">
-                                <div class="card product-card h-100">
+                                                                    @php
+                                        $isWishlisted = App\Models\Wishlist::where('user_id', auth()->id())->where('produk_id', $produk->id)->exists();
+                                    @endphp
+                                    <div class="card product-card h-100">
                                     @if(str_starts_with($produk->gambar, 'http'))
                                         <img src="{{ $produk->gambar }}" class="card-img-top" alt="{{ $produk->nama_produk }}">
                                     @else
@@ -171,8 +184,38 @@
                                                 <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Stok Habis</span>
                                             @endif
                                         </p>
+                                                                                {{-- TAMPILKAN RATING ULASAN --}}
+                                        @php
+                                            $avgRating = round($produk->reviews->avg('rating'), 1);
+                                            $totalReviews = $produk->reviews->count();
+                                        @endphp
+                                        <div class="mb-1" style="color: #FFA500; font-size: 0.8rem;">
+                                            @if($totalReviews > 0)
+                                                @for ($i = 1; $i <= 5; $i++)
+                                                    @if ($i <= round($avgRating))
+                                                        <i class="bi bi-star-fill"></i>
+                                                    @else
+                                                        <i class="bi bi-star"></i>
+                                                    @endif
+                                                @endfor
+                                                <span class="text-muted ms-1">({{ $totalReviews }} ulasan)</span>
+                                            @else
+                                                <i class="bi bi-star"></i> <span class="text-muted">Belum ada ulasan</span>
+                                            @endif
+                                        </div>
                                         <div class="mt-auto">
-                                            <div class="price-tag mb-2">Rp {{ number_format($produk->harga, 0, ',', '.') }}</div>
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div class="price-tag">Rp {{ number_format($produk->harga, 0, ',', '.') }}</div>
+                                                @if(auth()->check() && auth()->user()->role == 'pembeli')
+                                                    <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" onclick="toggleWishlist(this, {{ $produk->id }})">
+                                                        @if($isWishlisted)
+                                                            <i class="bi bi-heart-fill fs-4 text-danger"></i>
+                                                        @else
+                                                            <i class="bi bi-heart fs-4 text-muted"></i>
+                                                        @endif
+                                                    </button>
+                                                @endif
+                                            </div>
                                             @if(auth()->check() && auth()->user()->role == 'pembeli')
                                                 @if($produk->stok > 0)
                                                     <div class="d-flex gap-2 mb-2">
@@ -193,6 +236,12 @@
                             </div>
                         @endforeach
                     </div>
+                    
+                    {{-- TOMBOL PAGINATION --}}
+                    <div class="d-flex justify-content-center mt-5">
+                        {{ $produks->links('pagination::bootstrap-5') }}
+                    </div>
+
                     @else
                     <div class="text-center py-5 bg-white rounded-3 shadow-sm">
                         <i class="bi bi-search fs-1 text-muted"></i>
@@ -215,6 +264,24 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+                function toggleWishlist(btn, produkId) {
+            fetch(`/pembeli/wishlist/toggle/${produkId}`, {
+                method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    let icon = btn.querySelector('i');
+                    if(data.status === 'added') {
+                        icon.classList.remove('bi-heart', 'text-muted');
+                        icon.classList.add('bi-heart-fill', 'text-danger');
+                    } else {
+                        icon.classList.remove('bi-heart-fill', 'text-danger');
+                        icon.classList.add('bi-heart', 'text-muted');
+                    }
+                }
+            });
+        }
         function addToCart(produkId) {
             fetch(`/pembeli/keranjang/tambah/${produkId}`, {
                 method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }
@@ -237,13 +304,11 @@
             .catch(error => console.error('Error:', error));
         }
 
-        // Script untuk Pencarian Kategori di Sidebar
         function filterKategori() {
             let input = document.getElementById('searchKategori');
             let filter = input.value.toLowerCase();
             let ul = document.getElementById('listKategori');
             let items = ul.getElementsByTagName('a');
-            
             for (let i = 0; i < items.length; i++) {
                 let txtValue = items[i].textContent || items[i].innerText;
                 if (txtValue.toLowerCase().indexOf(filter) > -1) {

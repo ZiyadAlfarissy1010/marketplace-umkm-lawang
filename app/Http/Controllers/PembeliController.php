@@ -9,18 +9,38 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Produk;
 use App\Models\Pesanan;
 use App\Models\DetailPesanan;
-
+use App\Models\Review;
+use App\Models\Setting; // Tambahkan ini untuk ongkir
+use App\Models\Wishlist;
 class PembeliController extends Controller
 {
-        public function dashboard()
+        // FUNGSI BARU: WISHLIST
+    public function wishlist()
     {
-        // Tambahkan with('detailPesanans.produk.toko') agar data toko ikut terload
-        $pesanans = Pesanan::with('detailPesanans.produk.toko')
-            ->where('user_id', Auth::id())
-            ->where('status', '!=', 'keranjang')
-            ->latest()
-            ->get();
-            
+        $wishlists = Wishlist::where('user_id', Auth::id())->with('produk.toko')->latest()->get();
+        return view('pembeli.wishlist', compact('wishlists'));
+    }
+
+    public function toggleWishlist($produk_id)
+    {
+        $wishlist = Wishlist::where('user_id', Auth::id())->where('produk_id', $produk_id)->first();
+
+        if ($wishlist) {
+            // Jika sudah ada, hapus dari wishlist
+            $wishlist->delete();
+            return response()->json(['success' => true, 'status' => 'removed', 'message' => 'Produk dihapus dari wishlist.']);
+        } else {
+            // Jika belum ada, tambahkan ke wishlist
+            Wishlist::create([
+                'user_id' => Auth::id(),
+                'produk_id' => $produk_id
+            ]);
+            return response()->json(['success' => true, 'status' => 'added', 'message' => 'Produk ditambahkan ke wishlist!']);
+        }
+    }
+    public function dashboard()
+    {
+        $pesanans = Pesanan::with('detailPesanans.produk.toko')->where('user_id', Auth::id())->where('status', '!=', 'keranjang')->latest()->get();
         return view('pembeli.dashboard', compact('pesanans'));
     }
 
@@ -34,7 +54,9 @@ class PembeliController extends Controller
             $detailPesanans = DetailPesanan::where('pesanan_id', $pesanan->id)->with('produk')->get();
         }
 
-        return view('pembeli.keranjang', compact('detailPesanans'));
+        $ongkir = Setting::getOngkir(); // Ambil ongkir dari setting admin
+
+        return view('pembeli.keranjang', compact('detailPesanans', 'ongkir'));
     }
 
     public function addToCart($produk_id)
@@ -164,12 +186,12 @@ class PembeliController extends Controller
         return response()->json(['success' => true]);
     }
 
-    // FUNGSI UTAMA: CHECKOUT & KIRIM WA KE PENJUAL (SPLIT ORDER)
+    // FUNGSI UTAMA: CHECKOUT & KIRIM WA KE PENJUAL (SPLIT ORDER + ONGKIR)
     public function checkout(Request $request)
     {
-        // UPDATE: Tambahkan 'qris' ke dalam validasi
         $request->validate([
-            'metode_pembayaran' => 'required|in:whatsapp,transfer,qris'
+            'metode_pembayaran' => 'required|in:whatsapp,transfer,qris',
+            'ekspedisi' => 'required|in:JNE,J&T,SiCepat,Pos Indonesia'
         ]);
 
         $keranjang = Pesanan::where('user_id', Auth::id())->where('status', 'keranjang')->first();
@@ -196,6 +218,8 @@ class PembeliController extends Controller
         $groupedDetails = $details->groupBy('produk.toko_id');
         $token = env('FONNTE_TOKEN');
         $metodeBayar = $request->metode_pembayaran;
+        $ekspedisi = $request->ekspedisi;
+        $ongkir = Setting::getOngkir(); // Ambil ongkir
 
         // 3. LOOPING SETIAP TOKO DAN BUAT PESANAN BARU (SPLIT ORDER)
         foreach ($groupedDetails as $tokoId => $tokoDetails) {
@@ -210,13 +234,16 @@ class PembeliController extends Controller
                 'user_id' => Auth::id(),
                 'total_harga' => 0, 
                 'status' => $statusAwal,
-                'metode_pembayaran' => $metodeBayar
+                'metode_pembayaran' => $metodeBayar,
+                'ekspedisi' => $ekspedisi,
+                'ongkir' => $ongkir // Simpan ongkir per pesanan toko
             ]);
 
             $pesanWA = "Halo *{$toko->nama_toko}*, Anda mendapatkan pesanan baru!\n\n";
             $pesanWA .= "Kode Pesanan: *#ORD-{$pesananBaru->id}*\n";
             $pesanWA .= "Pembeli: *{$keranjang->user->name}*\n";
             $pesanWA .= "Metode Bayar: *" . strtoupper($metodeBayar) . "*\n";
+            $pesanWA .= "Ekspedisi: *{$ekspedisi}*\n";
             $pesanWA .= "Daftar Pesanan:\n";
 
             // Pindahkan detail pesanan ke pesanan baru, dan kurangi stok
@@ -233,12 +260,15 @@ class PembeliController extends Controller
                 $pesanWA .= "- {$detail->produk->nama_produk} (x{$detail->jumlah}) : Rp " . number_format($detail->subtotal, 0, ',', '.') . "\n";
             }
 
-            $pesananBaru->total_harga = $totalToko;
+            // Total harga = total belanja toko + ongkir
+            $pesananBaru->total_harga = $totalToko + $ongkir;
             $pesananBaru->save();
 
             // Jika metode bayar WhatsApp, kirim WA ke penjual
             if ($metodeBayar == 'whatsapp') {
-                $pesanWA .= "\nTotal Pesanan Toko Anda: *Rp " . number_format($totalToko, 0, ',', '.') . "*\n\n";
+                $pesanWA .= "\nSubtotal: Rp " . number_format($totalToko, 0, ',', '.') . "\n";
+                $pesanWA .= "Ongkir: Rp " . number_format($ongkir, 0, ',', '.') . "\n";
+                $pesanWA .= "Total: *Rp " . number_format($pesananBaru->total_harga, 0, ',', '.') . "*\n\n";
                 $pesanWA .= "Segera periksa dashboard toko Anda untuk memproses pesanan ini. Terima kasih.";
 
                 if ($token && $token != 'MASUKKAN_TOKEN_FONNTE_DISINI') {
@@ -252,7 +282,9 @@ class PembeliController extends Controller
                 }
             } else {
                 // Jika transfer bank / qris, kirim notifikasi WA biasa 
-                $pesanWA .= "\nTotal: Rp " . number_format($totalToko, 0, ',', '.') . "\n\n";
+                $pesanWA .= "\nSubtotal: Rp " . number_format($totalToko, 0, ',', '.') . "\n";
+                $pesanWA .= "Ongkir: Rp " . number_format($ongkir, 0, ',', '.') . "\n";
+                $pesanWA .= "Total: Rp " . number_format($pesananBaru->total_harga, 0, ',', '.') . "\n\n";
                 $pesanWA .= "Pembeli memilih metode " . strtoupper($metodeBayar) . ". Mohon pantau dashboard untuk verifikasi bukti bayar.";
 
                 if ($token && $token != 'MASUKKAN_TOKEN_FONNTE_DISINI') {
@@ -273,7 +305,7 @@ class PembeliController extends Controller
         return redirect()->route('pembeli.dashboard')->with('success', 'Checkout berhasil! Silakan lanjutkan pembayaran sesuai metode yang dipilih.');
     }
 
-    // FUNGSI BARU: UPLOAD BUKTI BAYAR (TAHAP 4)
+    // FUNGSI BARU: UPLOAD BUKTI BAYAR
     public function uploadBuktiBayar(Request $request, $id)
     {
         $request->validate([
@@ -284,19 +316,53 @@ class PembeliController extends Controller
 
         if ($pesanan->status == 'pending_payment') {
             if ($request->hasFile('bukti_bayar')) {
-                // Hapus bukti lama jika ada
                 if ($pesanan->bukti_bayar) {
                     Storage::disk('public')->delete($pesanan->bukti_bayar);
                 }
                 $path = $request->file('bukti_bayar')->store('bukti_bayar', 'public');
                 $pesanan->bukti_bayar = $path;
-                $pesanan->status = 'dibayar'; // Menunggu konfirmasi penjual
+                $pesanan->status = 'dibayar';
                 $pesanan->save();
             }
             return back()->with('success', 'Bukti pembayaran berhasil diunggah. Menunggu konfirmasi penjual.');
         }
 
         return back()->with('error', 'Pesanan tidak bisa diunggah bukti bayarnya.');
+    }
+
+    // FUNGSI BARU: SIMPAN ULASAN PRODUK
+    public function storeReview(Request $request, $id)
+    {
+        $request->validate([
+            'produk_id' => 'required|exists:produks,id',
+            'rating' => 'required|integer|min:1|max:5',
+            'komentar' => 'nullable|string'
+        ]);
+
+        $pesanan = Pesanan::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+
+        if ($pesanan->status != 'selesai') {
+            return back()->with('error', 'Hanya bisa memberi ulasan untuk pesanan yang sudah selesai.');
+        }
+
+        $existingReview = Review::where('user_id', Auth::id())
+            ->where('produk_id', $request->produk_id)
+            ->where('pesanan_id', $id)
+            ->first();
+
+        if ($existingReview) {
+            return back()->with('error', 'Anda sudah memberikan ulasan untuk produk ini.');
+        }
+
+        Review::create([
+            'user_id' => Auth::id(),
+            'produk_id' => $request->produk_id,
+            'pesanan_id' => $id,
+            'rating' => $request->rating,
+            'komentar' => $request->komentar
+        ]);
+
+        return back()->with('success', 'Terima kasih! Ulasan Anda berhasil dikirim.');
     }
 
     public function batalkanPesanan($id)

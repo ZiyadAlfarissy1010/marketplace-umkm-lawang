@@ -170,7 +170,7 @@
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
         }
 
-        /* Style Badge Keranjang */
+        /* Style Badge Keranjang & Notif Pesanan */
         .cart-badge {
             position: absolute;
             top: -5px;
@@ -229,14 +229,12 @@
             overflow: hidden;
             height: 350px; 
             position: relative;
-            /* Hilangkan border keras, ganti dengan bayangan lembut dan outline kaca */
             border: none;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35); /* Bayangan sangat lembut & dalam */
-            outline: 1px solid rgba(255, 255, 255, 0.15); /* Garis tipis transparan seperti kaca */
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+            outline: 1px solid rgba(255, 255, 255, 0.15);
             outline-offset: -1px;
         }
         
-        /* Gradient gelap di bawah foto agar titik indikator terlihat */
         .hero-carousel::after {
             content: '';
             position: absolute;
@@ -246,7 +244,7 @@
             height: 40%;
             background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
             z-index: 1;
-            pointer-events: none; /* Agar klik tetap masuk ke tombol */
+            pointer-events: none;
         }
 
         .hero-carousel .carousel-inner, 
@@ -259,7 +257,6 @@
             object-fit: cover; 
         }
         
-        /* Naikkan indikator & tombol agar berada di atas gradient gelap */
         .hero-carousel .carousel-control-prev, 
         .hero-carousel .carousel-control-next {
             width: 15%;
@@ -280,7 +277,7 @@
         }
         .hero-carousel .carousel-indicators .active {
             background-color: #FFFFFF;
-            transform: scale(1.2); /* Titik aktif sedikit membesar */
+            transform: scale(1.2);
         }
     </style>
 </head>
@@ -295,7 +292,6 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 
-                <!-- Kolom Pencarian -->
                 <form action="{{ route('katalog') }}" method="GET" class="d-flex mx-auto my-lg-0 my-2 navbar-search" style="width: 100%; max-width: 450px;">
                     <input type="text" name="search" class="form-control" placeholder="Cari produk UMKM...">
                     <button class="btn" type="submit"><i class="bi bi-search"></i></button>
@@ -311,7 +307,19 @@
                                 <span class="cart-badge" id="cartCount" style="@if($cartCount > 0) display: inline; @else display: none; @endif">{{ $cartCount }}</span>
                             </a>
                         </li>
-                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('pembeli.dashboard') ? 'active-nav' : '' }}" href="/pembeli/dashboard">Pesanan</a></li>
+                        <li class="nav-item position-relative">
+                            <a class="nav-link {{ request()->routeIs('pembeli.dashboard') ? 'active-nav' : '' }}" href="/pembeli/dashboard">
+                                Pesanan
+                                @if($newOrdersCount > 0)
+                                    <span class="cart-badge" style="top: 0; right: -10px; display: inline;">{{ $newOrdersCount }}</span>
+                                @endif
+                            </a>
+                        </li>
+                                                <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('pembeli.wishlist') ? 'active-nav' : '' }}" href="/pembeli/wishlist">
+                                <i class="bi bi-heart-fill fs-5"></i>
+                            </a>
+                        </li>
                         <li class="nav-item ms-2">
                             <a class="nav-link p-0" href="/profile/edit" title="Edit Profil">
                                 <img src="{{ auth()->user()->foto ? asset('storage/'.auth()->user()->foto) : 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=1B4332&color=fff' }}" class="rounded-circle" width="35" height="35" style="object-fit: cover; border: 2px solid #FFFFFF;" alt="Foto Profil">
@@ -350,14 +358,12 @@
                         <!-- Mulai Carousel -->
                         <div id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel" data-bs-interval="3000">
                             
-                            <!-- Indikator (Titik di bawah) -->
                             <div class="carousel-indicators">
                                 <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
                                 <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
                                 <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
                             </div>
                             
-                            <!-- Daftar Foto -->
                             <div class="carousel-inner">
                                 <div class="carousel-item active">
                                     <img src="{{ asset('images/lawang1.jpg') }}" alt="Pemandangan Lawang 1">
@@ -370,12 +376,10 @@
                                 </div>
                             </div>
 
-                            <!-- Tombol Panah Kiri -->
                             <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
                                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Previous</span>
                             </button>
-                            <!-- Tombol Panah Kanan -->
                             <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
                                 <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Next</span>
@@ -406,6 +410,25 @@
                             <div class="card-body d-flex flex-column">
                                 <h6 class="card-title fw-semibold text-truncate">{{ $produk->nama_produk }}</h6>
                                 <p class="text-muted small mb-1"><i class="bi bi-shop"></i> {{ $produk->toko->nama_toko }}</p>
+                                                                {{-- TAMPILKAN RATING ULASAN --}}
+                                @php
+                                    $avgRating = round($produk->reviews->avg('rating'), 1);
+                                    $totalReviews = $produk->reviews->count();
+                                @endphp
+                                <div class="mb-1" style="color: #FFA500; font-size: 0.8rem;">
+                                    @if($totalReviews > 0)
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            @if ($i <= round($avgRating))
+                                                <i class="bi bi-star-fill"></i>
+                                            @else
+                                                <i class="bi bi-star"></i>
+                                            @endif
+                                        @endfor
+                                        <span class="text-muted ms-1">({{ $totalReviews }} ulasan)</span>
+                                    @else
+                                        <i class="bi bi-star"></i> <span class="text-muted">Belum ada ulasan</span>
+                                    @endif
+                                </div>
                                 <div class="mt-auto">
                                     <div class="price-tag mb-2">Rp {{ number_format($produk->harga, 0, ',', '.') }}</div>
                                     <a href="/toko/{{ $produk->toko_id }}" class="btn btn-sm btn-primary-custom w-100 rounded-pill">Lihat Produk</a>

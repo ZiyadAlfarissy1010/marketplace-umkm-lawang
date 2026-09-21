@@ -8,9 +8,9 @@ class Pesanan extends Model
 {
     protected $table = 'pesanans';
 
-     protected $fillable = [
-     'user_id', 'total_harga', 'status', 'metode_pembayaran', 'bukti_bayar'
-     ];
+            protected $fillable = [
+        'user_id', 'total_harga', 'status', 'metode_pembayaran', 'bukti_bayar', 'ekspedisi', 'ongkir', 'buyer_seen'
+    ];
 
     // Relasi: Pesanan milik 1 User (Pembeli)
     public function user()

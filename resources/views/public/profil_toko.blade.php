@@ -82,7 +82,14 @@
                                 <span class="cart-badge" id="cartCount" style="@if($cartCount > 0) display: inline; @else display: none; @endif">{{ $cartCount }}</span>
                             </a>
                         </li>
-                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('pembeli.dashboard') ? 'active-nav' : '' }}" href="/pembeli/dashboard">Pesanan</a></li>
+                        <li class="nav-item position-relative">
+    <a class="nav-link {{ request()->routeIs('pembeli.dashboard') ? 'active-nav' : '' }}" href="/pembeli/dashboard">
+        Pesanan
+        @if($newOrdersCount > 0)
+            <span class="cart-badge" style="top: 0; right: -10px; display: inline;">{{ $newOrdersCount }}</span>
+        @endif
+    </a>
+</li>
                         <li class="nav-item ms-2">
                             <a class="nav-link p-0" href="/profile/edit" title="Edit Profil">
                                 <img src="{{ auth()->user()->foto ? asset('storage/'.auth()->user()->foto) : 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=1B4332&color=fff' }}" class="rounded-circle" width="35" height="35" style="object-fit: cover; border: 2px solid #FFFFFF;" alt="Foto Profil">
@@ -157,6 +164,27 @@
                                         <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Stok Habis</span>
                                     @endif
                                 </p>
+                                
+                                {{-- TAMPILKAN RATING ULASAN --}}
+                                @php
+                                    $avgRating = round($produk->reviews->avg('rating'), 1);
+                                    $totalReviews = $produk->reviews->count();
+                                @endphp
+                                <div class="mb-1" style="color: #FFA500; font-size: 0.8rem;">
+                                    @if($totalReviews > 0)
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            @if ($i <= round($avgRating))
+                                                <i class="bi bi-star-fill"></i>
+                                            @else
+                                                <i class="bi bi-star"></i>
+                                            @endif
+                                        @endfor
+                                        <span class="text-muted ms-1">({{ $totalReviews }} ulasan)</span>
+                                    @else
+                                        <i class="bi bi-star"></i> <span class="text-muted">Belum ada ulasan</span>
+                                    @endif
+                                </div>
+
                                 <div class="mt-auto">
                                     <div class="price-tag mb-2">Rp {{ number_format($produk->harga, 0, ',', '.') }}</div>
                                     @if(auth()->check() && auth()->user()->role == 'pembeli')

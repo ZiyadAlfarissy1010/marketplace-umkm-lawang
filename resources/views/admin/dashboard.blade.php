@@ -62,6 +62,7 @@
             <li><a href="/admin/verifikasi"><i class="bi bi-shop"></i> Verifikasi Toko @if(isset($pendingTokoCount) && $pendingTokoCount > 0) <span class="badge bg-danger rounded-pill ms-auto">{{ $pendingTokoCount }}</span> @endif</a></li>
             <li><a href="/admin/pengguna"><i class="bi bi-people"></i> Kelola Pengguna</a></li>
             <li><a href="/profile/edit"><i class="bi bi-person-circle"></i> Profil Akun</a></li>
+            <li><a href="/admin/ongkir"><i class="bi bi-truck"></i> Pengaturan Ongkir</a></li>
         </ul>
         <div class="sidebar-footer"><form action="/logout" method="POST">@csrf<button type="submit" class="btn btn-outline-light w-100 rounded-pill"><i class="bi bi-box-arrow-right"></i> Logout</button></form></div>
     </div>

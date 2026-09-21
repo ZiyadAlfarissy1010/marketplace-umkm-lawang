@@ -138,7 +138,19 @@
                             <span class="cart-badge" id="cartCount" style="@if($cartCount > 0) display: inline; @else display: none; @endif">{{ $cartCount }}</span>
                         </a>
                     </li>
-                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('pembeli.dashboard') ? 'active-nav' : '' }}" href="/pembeli/dashboard">Pesanan</a></li>
+                    <li class="nav-item position-relative">
+                        <a class="nav-link {{ request()->routeIs('pembeli.dashboard') ? 'active-nav' : '' }}" href="/pembeli/dashboard">
+                            Pesanan
+                            @if($newOrdersCount > 0)
+                                <span class="cart-badge" style="top: 0; right: -10px; display: inline;">{{ $newOrdersCount }}</span>
+                            @endif
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('pembeli.wishlist') ? 'active-nav' : '' }}" href="/pembeli/wishlist">
+                            <i class="bi bi-heart-fill fs-5"></i>
+                        </a>
+                    </li>
                     <li class="nav-item ms-2">
                         <a class="nav-link p-0" href="/profile/edit" title="Edit Profil">
                             <img src="{{ auth()->user()->foto ? asset('storage/'.auth()->user()->foto) : 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=1B4332&color=fff' }}" class="rounded-circle" width="35" height="35" style="object-fit: cover; border: 2px solid #FFFFFF;" alt="Foto Profil">
@@ -183,8 +195,9 @@
                         
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div>
-                                <p class="text-muted mb-0">Total Pembayaran</p>
+                                <p class="text-muted mb-0">Total Pembayaran <span class="badge bg-secondary ms-1"><i class="bi bi-truck"></i> {{ $pesanan->ekspedisi }}</span></p>
                                 <h4 class="fw-bold mb-0" style="color: var(--primary-dark);">Rp {{ number_format($pesanan->total_harga, 0, ',', '.') }}</h4>
+                                <small class="text-muted">(Termasuk Ongkir: Rp {{ number_format($pesanan->ongkir, 0, ',', '.') }})</small>
                             </div>
                             <div class="d-flex gap-2">
                                 @if($pesanan->status == 'checkout' || $pesanan->status == 'pending_payment')
