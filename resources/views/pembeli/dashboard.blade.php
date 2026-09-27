@@ -214,8 +214,10 @@
                                     </form>
                                 @endif
 
-                                @if($pesanan->status == 'checkout')
-                                    <button type="button" class="btn btn-success rounded-pill px-4" onclick="lihatDetail({{ $pesanan->id }})"><i class="bi bi-whatsapp"></i> Bayar via WA</button>
+                                @if($pesanan->status == 'checkout' && $pesanan->wa_link)
+                                    <a href="{{ $pesanan->wa_link }}" target="_blank" class="btn btn-success rounded-pill px-4">
+                                        <i class="bi bi-whatsapp"></i> Chat Penjual via WA
+                                    </a>
                                 @endif
 
                                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="lihatDetail({{ $pesanan->id }})">Lihat Detail</button>

@@ -11,7 +11,7 @@ return new class extends Migration
     {
         // 1. Tambah kolom ke tabel pesanans
         Schema::table('pesanans', function (Blueprint $table) {
-            $table->enum('metode_pembayaran', ['whatsapp', 'transfer'])->default('whatsapp')->after('status');
+            $table->enum('metode_pembayaran', ['whatsapp', 'transfer', 'qris'])->default('whatsapp')->after('status');
             $table->string('bukti_bayar')->nullable()->after('metode_pembayaran');
         });
 
